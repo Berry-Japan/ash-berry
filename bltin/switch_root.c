@@ -97,7 +97,7 @@ static void delete_contents(const char *directory, dev_t rootdev)
 //	main
 //---------------------------------------------------------
 
-int switch_root_main(int argc, const char **argv)
+int switch_root_main(int argc, /*const */char **argv)
 {
 	char *newroot, *console = NULL;
 	struct stat st;

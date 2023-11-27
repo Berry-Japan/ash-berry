@@ -5,7 +5,7 @@ SRCS=	builtins.c cd.c dirent.c bltin/echo.c error.c eval.c exec.c expand.c \
 	syntax.c trap.c output.c var.c bltin/test.c \
 	bltin/mount.c bltin/umount.c bltin/cat.c bltin/lsmod.c bltin/rmmod.c \
 	bltin/sleep.c bltin/losetup.c bltin/pivot_root.c bltin/switch_root.c bltin/insmod.c \
-	bltin/rescan.c
+	bltin/rescan.c bltin/dmesg.c bltin/more.c
 
 OBJ1 =	init.o
 OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
@@ -14,7 +14,7 @@ OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
 	syntax.o trap.o output.o var.o bltin/test.o \
 	bltin/mount.o bltin/umount.o bltin/cat.o bltin/lsmod.o bltin/rmmod.o \
 	bltin/sleep.o bltin/losetup.o bltin/pivot_root.o bltin/switch_root.o bltin/insmod.o \
-	bltin/rescan.o
+	bltin/rescan.o bltin/dmesg.o bltin/more.o
 
 #MOD_OBJ = ./module-init-tools-3.1/insmod.o
 

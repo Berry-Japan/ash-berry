@@ -97,3 +97,5 @@ pivot_root_main	pivot_root
 switch_root_main	switch_root
 rescan_main	rescan
 sleepcmd	sleep
+dmesg_main	dmesg
+more_main	more

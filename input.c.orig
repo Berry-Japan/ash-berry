@@ -145,13 +145,12 @@ pfgets(line, len)
  * Nul characters in the input are silently discarded.
  */
 
-inline int pgetc()
-{
+int
+pgetc() {
 	return pgetc_macro();
 }
 
 
-//#include <string.h>
 /*
  * Refill the input buffer and return the next input character:
  *
@@ -163,12 +162,10 @@ inline int pgetc()
  * 4) Delete all nul characters from the buffer.
  */
 
-int preadbuffer()
-{
+int
+preadbuffer() {
 	register char *p, *q;
 	register int i;
-	//static int len=0;
-	//static char buff[BUFSIZ];
 
 	if (pushedstring) {
 		parsenextc = pushedstring;
@@ -185,43 +182,41 @@ retry:
 	p = parsenextc = parsefile->buf;
 	i = read(parsefile->fd, p, BUFSIZ);
 	if (i <= 0) {
-		if (i < 0) {
-			if (errno == EINTR) goto retry;
-			if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
-				int flags = fcntl(0, F_GETFL, 0);
-				if (flags >= 0 && flags & O_NONBLOCK) {
-					flags &=~ O_NONBLOCK;
-					if (fcntl(0, F_SETFL, flags) >= 0) {
+                if (i < 0) {
+                        if (errno == EINTR)
+                                goto retry;
+                        if (parsefile->fd == 0 && errno == EWOULDBLOCK) {
+                                int flags = fcntl(0, F_GETFL, 0);
+                                if (flags >= 0 && flags & O_NONBLOCK) {
+                                        flags &=~ O_NONBLOCK;
+                                        if (fcntl(0, F_SETFL, flags) >= 0) {
 						out2str("sh: turning off NDELAY mode\n");
-						goto retry;
-					}
-				}
-			}
-		}
-		parsenleft = EOF_NLEFT;
-		return PEOF;
+                                                goto retry;
+                                        }
+                                }
+                        }
+                }
+                parsenleft = EOF_NLEFT;
+                return PEOF;
 	}
 	parsenleft = i - 1;
-	/*if (*p == 'a') {
-		strncpy(parsenextc, buff, len);
-		parsenleft = len-1;
-	}*/
 
 	/* delete nul characters */
 	for (;;) {
-		if (*p++ == '\0') break;
-		if (--i <= 0) return *parsenextc++;	/* no nul characters */
+		if (*p++ == '\0')
+			break;
+		if (--i <= 0)
+			return *parsenextc++;		/* no nul characters */
 	}
 	q = p - 1;
 	while (--i > 0) {
-		if (*p != '\0') *q++ = *p;
+		if (*p != '\0')
+			*q++ = *p;
 		p++;
 	}
-	if (q == parsefile->buf) goto retry;		/* buffer contained nothing but nuls */
+	if (q == parsefile->buf)
+		goto retry;			/* buffer contained nothing but nuls */
 	parsenleft = q - parsefile->buf - 1;
-	//len = parsenleft+1;
-	//strncpy(buff, parsenextc, len);
-	//error("<%s>",buff);
 	return *parsenextc++;
 }
 
