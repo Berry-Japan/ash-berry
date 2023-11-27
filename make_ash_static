@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Needs dietlibc for using diet
-GCC="diet gcc"
+GCC="diet gcc -O2 -Os"
 #GCC="gcc"
 MAKE="make"
 
