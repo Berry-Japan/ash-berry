@@ -4,7 +4,7 @@ SRCS=	builtins.c cd.c dirent.c bltin/echo.c error.c eval.c exec.c expand.c \
 	mystring.c nodes.c options.c parser.c redir.c show.c \
 	syntax.c trap.c output.c var.c bltin/test.c \
 	bltin/mount.c bltin/umount.c bltin/cat.c bltin/lsmod.c bltin/rmmod.c \
-	bltin/losetup.c
+	bltin/losetup.c bltin/pivot_root.c
 
 OBJ1 =	init.o
 OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
@@ -12,10 +12,10 @@ OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
 	mystring.o nodes.o options.o parser.o redir.o show.o \
 	syntax.o trap.o output.o var.o bltin/test.o \
 	bltin/mount.o bltin/umount.o bltin/cat.o bltin/lsmod.o bltin/rmmod.o \
-	bltin/losetup.o
+	bltin/losetup.o bltin/pivot_root.o
 
-MOD_OBJ = ./modutils-2.4.18/insmod/insmod.o \
-	./modutils-2.4.18/obj/libobj.a ./modutils-2.4.18/util/libutil.a
+MOD_OBJ = ./modutils-2.4.25/insmod/insmod.o \
+	./modutils-2.4.25/obj/libobj.a ./modutils-2.4.25/util/libutil.a
 
 OBJS =	$(OBJ1) $(OBJ2)
 
