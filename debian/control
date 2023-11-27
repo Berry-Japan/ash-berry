@@ -1,0 +1,23 @@
+Source: ash-knoppix
+Section: base
+Priority: optional
+Maintainer: Klaus Knopper <knoppix@knopper.net>
+Build-Depends: debhelper (>> 3.0.0)
+Build-Depends: dietlibc-dev (>> 0.15)
+Standards-Version: 3.5.2
+
+Package: ash-knoppix
+Architecture: any
+Depends: ${shlibs:Depends}
+Conflicts: ash
+Replaces: ash
+Provides: ash
+Description: A smaller version of the Bourne shell enhanced with some builtins
+ The ash shell is a clone of Berkeley's Bourne shell. Ash supports all
+ of the standard sh shell commands, but is considerably smaller than bash.
+ The ash shell lacks some features (for example, command-line histories),
+ but needs a lot less memory.
+ You should install ash if you need a lightweight shell with many of the
+ same capabilities as the bash shell.
+ This version has a stripped-down but functional mount and umount builtin
+ plus insmod/rmmod needed for the KNOPPIX boot Floppy.

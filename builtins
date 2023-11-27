@@ -93,3 +93,4 @@ rmmodcmd	rmmod
 lsmodcmd	lsmod
 losetup_main	losetup
 pivot_root_main	pivot_root
+sleepcmd	sleep

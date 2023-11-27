@@ -3,6 +3,8 @@
 ###
 
 %changelog
+* Thu May 22 2003 Yuichiro Nakada <berry@po.yui.mine.nu>
+- version up to ash-knoppix_0.2-4
 * Sat Apr 12 2003 Yuichiro Nakada <berry@po.yui.mine.nu>
 - version up to modules 2.4.25
 - add pivot_root command

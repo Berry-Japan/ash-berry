@@ -1,0 +1,28 @@
+ash-knoppix (0.2-4) unstable; urgency=low
+
+  * Added sleep builtin command
+  * Fixed "mount" output with no args
+
+ -- root <root@Knoppix>  Mon, 28 Apr 2003 01:09:48 +0200
+
+ash-knoppix (0.2-3) unstable; urgency=low
+
+  * wrote own version of rmmod
+
+ -- root <root@Knoppix>  Mon,  8 Apr 2002 00:00:48 +0200
+
+ash-knoppix (0.2-2) unstable; urgency=low
+
+  * Now uses dietlibc instead of libc5
+
+ -- root <root@Knoppix>  Fri, 29 Mar 2002 18:18:51 +0100
+
+ash-knoppix (0.2-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Klaus Knopper <knoppix@knopper.net>  Sat,  2 Jun 2001 22:04:35 +0200
+
+Local variables:
+mode: debian-changelog
+End:

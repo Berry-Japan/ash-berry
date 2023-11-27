@@ -91,3 +91,4 @@ catcmd          cat
 insmod_main	insmod
 rmmodcmd	rmmod
 lsmodcmd	lsmod
+sleepcmd	sleep

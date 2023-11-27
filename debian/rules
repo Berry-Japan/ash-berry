@@ -1,0 +1,127 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This is the debhelper compatability version to use.
+export DH_COMPAT=3
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	# Add here commands to configure the package.
+	
+
+	touch configure-stamp
+
+build: configure-stamp build-stamp
+build-stamp:
+	dh_testdir
+
+	# Add here commands to compile the package.
+
+# Build modutils library
+	( cd modutils-2.4.15 ; \
+	CC="diet gcc" ./configure --disable-compat-2-0 \
+	--disable-combined \
+ 	--disable-rmmod \
+	--disable-lsmod \
+	--disable-kerneld \
+	--disable-insmod-static && \
+	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" depend && \
+	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C util all && \
+	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C obj all && \
+	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C insmod insmod.o )
+
+# Build static version of ash-knoppix
+	# We need a VERY small binary, so let's try to use libc5
+	# Packages altgc and lib5-altdev needed
+	$(MAKE) mkinit
+	CC="diet gcc" $(MAKE) CC="diet gcc" STATIC="-static" LDFLAGS="-s -Wl,-qmagic"
+	mv sh ash.static
+
+# Now build a dynamic version of ash-knoppix
+	$(MAKE) clean
+	$(MAKE) -C modutils-2.4.15 clean
+	( cd modutils-2.4.15 ; \
+	CC="gcc" ./configure --disable-compat-2-0 \
+	--disable-combined \
+ 	--disable-rmmod \
+	--disable-lsmod \
+	--disable-kerneld \
+	--disable-insmod-static && \
+	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" depend && \
+	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" -C util all && \
+	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" -C obj all && \
+	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" -C insmod insmod.o )
+	$(MAKE) RPM_OPT_FLAGS="-Os" LDFLAGS="-s"
+	mv sh ash
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+
+	# Add here commands to clean up after the build process.
+	-rm -f ash ash.static
+	-$(MAKE) -C modutils-2.4.15 clean
+	-$(MAKE) clean
+
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	# Add here commands to install the package into debian/ash-knoppix.
+	mkdir -p $(CURDIR)/debian/ash-knoppix/bin \
+	         $(CURDIR)/debian/ash-knoppix/usr/share/man/man1
+
+	install -m 755 ash $(CURDIR)/debian/ash-knoppix/bin/ash
+	install -m 644 sh.1 $(CURDIR)/debian/ash-knoppix/usr/share/man/man1/ash.1
+	ln -sf ash.1 $(CURDIR)/debian/ash-knoppix/usr/share/man/man1/bsh.1
+	ln -sf ash   $(CURDIR)/debian/ash-knoppix/bin/bsh
+	install -m 755 ash.static $(CURDIR)/debian/ash-knoppix/bin/ash.static
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+#	dh_installdebconf	
+	dh_installdocs
+	dh_installexamples
+	dh_installmenu
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+	dh_installcron
+	dh_installman
+	dh_installinfo
+#	dh_undocumented
+	dh_installchangelogs 
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+#	dh_makeshlibs
+	dh_installdeb
+#	dh_perl
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "bltin.h"
+#include "../builtins.h"
 
 extern char *strtok(char *s, const char *delim);
 
@@ -48,7 +49,8 @@ int mountcmd(int argc, char **argv)
  char *dv=NULL,*mp=NULL,*fs=NULL;
  if(argc<2) /* List mounts, use procfs, simple "cat" */
   {
-   return catcmd(2,pm);
+   char *nargv[3]={builtincmd[CATCMD].name,pm,NULL};
+   return catcmd(2,nargv);
   }
  if(argc<3) return syntax();
  for(i=1;i<argc;i++)
