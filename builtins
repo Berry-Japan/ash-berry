@@ -88,9 +88,11 @@ waitcmd		wait
 umountcmd       umount
 mountcmd        mount
 catcmd          cat
-insmod_main	insmod
+#insmod_main	insmod
+insmodcmd	insmod
 rmmodcmd	rmmod
 lsmodcmd	lsmod
 losetup_main	losetup
 pivot_root_main	pivot_root
+rescan_main	rescan
 sleepcmd	sleep

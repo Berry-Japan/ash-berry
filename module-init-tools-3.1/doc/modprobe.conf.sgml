@@ -18,14 +18,16 @@
       <firstname>Rusty</firstname>
       <surname>Russell</surname>
     </author>
-    <date>2002-12-27</date>
+    <date>2004-09-30</date>
   </refentryinfo>
   <refmeta>
     <refentrytitle>modprobe.conf</refentrytitle>
     <manvolnum>5</manvolnum>
+    <refentrytitle>modprobe.d</refentrytitle>
+    <manvolnum>5</manvolnum>
   </refmeta>
   <refnamediv>
-    <refname>modprobe.conf</refname> <refpurpose>Configuration file for modprobe</refpurpose>
+    <refname>modprobe.conf</refname><refname>modprobe.d</refname> <refpurpose>Configuration file/directory for modprobe</refpurpose>
   </refnamediv>
   <refsect1>
     <title>DESCRIPTION</title>
@@ -33,7 +35,7 @@
     <para>Because the <command>modprobe</command> command can add or
       remove extra more than one module, due to module dependencies,
       we need a method of specifying what options are to be used with
-      those modules.  <filename>modprobe.conf</filename> specifies
+      those modules.  <filename>/etc/modprobe.conf</filename> (or, if that does not exist, all files under the <filename>/etc/modprobe.d</filename> directory) specifies
       those options, as required.  It can also be used to create
       convenient aliases: alternate names for a module.  Finally, it
       can override the normal <command>modprobe</command> behavior
@@ -46,7 +48,7 @@
       module commands.
     </para>
     <para>
-      The format of <filename>modprobe.conf</filename> is simple: one
+      The format of <filename>modprobe.conf</filename> and files under <filename>modprobe.d</filename> is simple: one
       command per line, with blank lines and lines starting with #
       ignored (useful for adding comments).  A \ at the end of a line
       causes it to continue on the next line, which makes the file a
@@ -73,6 +75,14 @@
 	    effect.  You can't have aliases to other aliases (that
 	    way lies madness), but aliases can have options, which
 	    will be added to any other options.
+	  </para>
+	  <para>
+	    Note that modules can also contain their own aliases,
+	    which you can see using <command>modinfo</command>.  These
+	    aliases are used as a last resort (ie. if there is no real
+	    module, <command>install</command>,
+	    <command>remove</command>, or <command>alias</command>
+	    command in the configuration).
 	  </para>
         </listitem>
       </varlistentry>
@@ -146,7 +156,7 @@
 	<listitem>
 	  <para>
 	    Using this command, you can include other configuration
-	    files, which is occasionally useful.  Note that aliases in
+	    files, or whole directories, which is occasionally useful.  Note that aliases in
 	    the included file will override aliases previously
 	    declared in the current file.
 	  </para>
@@ -182,7 +192,7 @@
   <refsect1>
     <title>COPYRIGHT</title>
     <para>
-      This manual page Copyright 2002, Rusty Russell, IBM Corporation.
+      This manual page Copyright 2004, Rusty Russell, IBM Corporation.
     </para>
   </refsect1>
   <refsect1>

@@ -3,7 +3,7 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "MODPROBE.CONF" "5" "22 December 2003" "" ""
+.TH "MODPROBE.CONF" "5" "30 September 2004" "" ""
 
 .SH NAME
 modprobe.conf \- Configuration file for modprobe
@@ -42,6 +42,13 @@ means that "modprobe my-mod-something" has the same
 effect.  You can't have aliases to other aliases (that
 way lies madness), but aliases can have options, which
 will be added to any other options.
+
+Note that modules can also contain their own aliases,
+which you can see using \fBmodinfo\fR.  These
+aliases are used as a last resort (ie. if there is no real
+module, \fBinstall\fR,
+\fBremove\fR, or \fBalias\fR
+command in the configuration).
 .TP
 \fBoptions \fImodulename\fB \fIoption...\fB \fR
 This command allows you to add options to the module
@@ -113,7 +120,7 @@ producing a more powerful modprobe variant can be done
 independently if there is a need.
 .SH "COPYRIGHT"
 .PP
-This manual page Copyright 2002, Rusty Russell, IBM Corporation.
+This manual page Copyright 2004, Rusty Russell, IBM Corporation.
 .SH "SEE ALSO"
 .PP
 \fBmodprobe\fR(8),

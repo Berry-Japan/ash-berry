@@ -281,9 +281,7 @@ static int ends_in(const char *name, const char *ext)
 	return 0;
 }
 
-static struct module *grab_module(const char *dirname,
-				  const char *filename,
-				  struct module *next)
+static struct module *grab_module(const char *dirname, const char *filename)
 {
 	struct module *new;
 
@@ -317,17 +315,13 @@ static struct module *grab_module(const char *dirname,
 		     new->pathname, ((char *)new->data)[EI_CLASS]);
 		goto fail;
 	}
-	new->ops->load_symbols(new);
-	new->ops->fetch_tables(new);
-
-	new->next = next;
 	return new;
 
 fail:
 	release_file(new->data, new->len);
 fail_data:
 	free(new);
-	return next;
+	return NULL;
 }
 
 struct module_traverse
@@ -462,37 +456,129 @@ static int smells_like_module(const char *name)
 	return ends_in(name,".ko") || ends_in(name, ".ko.gz");
 }
 
-static struct module *grab_dir(const char *dirname, struct module *next)
+typedef struct module *(*do_module_t)(const char *dirname,
+				      const char *filename,
+				      struct module *next);
+
+static int is_update(const char *dirname)
+{
+	char *p;
+
+	p = strstr(dirname, "updates");
+	if (!p)
+		return 0;
+	return (p[strlen("updates")] == '/' || p[strlen("updates")] == '\0');
+}
+
+/* Grab everything not under updates/ directories. */
+static struct module *do_normal_module(const char *dirname,
+				       const char *filename,
+				       struct module *list)
+{
+	struct module *new;
+
+	if (is_update(dirname))
+		return list;
+	new = grab_module(dirname, filename);
+	if (!new)
+		return list;
+	new->next = list;
+	return new;
+}
+
+/* Grab everything under updates/ directories, override existing module. */
+static struct module *do_update_module(const char *dirname,
+				       const char *filename,
+				       struct module *list)
+{
+	struct module *new, **i;
+
+	if (!is_update(dirname))
+		return list;
+
+	new = grab_module(dirname, filename);
+	if (!new)
+		return list;
+
+	/* Find module of same name, and replace it. */
+	for (i = &list; *i; i = &(*i)->next) {
+		if (streq(basename((*i)->pathname), filename)) {
+			new->next = (*i)->next;
+			*i = new;
+			return list;
+		}
+	}
+
+	/* Update of non-existent module.  Just prepend. */
+	new->next = list;
+	return new;
+}
+
+static struct module *grab_dir(const char *dirname,
+			       DIR *dir,
+			       struct module *next,
+			       do_module_t do_mod)
+{
+	struct dirent *dirent;
+
+	while ((dirent = readdir(dir)) != NULL) {
+		if (smells_like_module(dirent->d_name))
+			next = do_mod(dirname, dirent->d_name, next);
+		else if (!streq(dirent->d_name, ".")
+			 && !streq(dirent->d_name, "..")) {
+			DIR *sub;
+			char dummy; /* readlink with 0 len always fails */
+			char subdir[strlen(dirname) + 1
+				   + strlen(dirent->d_name) + 1];
+			sprintf(subdir, "%s/%s", dirname, dirent->d_name);
+			/* Don't follow links, eg. build/ */
+			if (readlink(subdir, &dummy, 1) < 0) {
+				sub = opendir(subdir);
+				if (sub) {
+					next = grab_dir(subdir, sub, next,
+							do_mod);
+					closedir(sub);
+				}
+			}
+		}
+	}
+	return next;
+}
+
+
+/* RH-ism: updates/ dir overrides other modules. */
+static struct module *grab_basedir(const char *dirname)
 {
 	DIR *dir;
-	struct dirent *dirent;
+	struct module *list;
+	char updatedir[strlen(dirname) + sizeof("/updates")];
 
 	dir = opendir(dirname);
 	if (!dir) {
 		warn("Couldn't open directory %s: %s\n",
 		     dirname, strerror(errno));
-		return next;
+		return NULL;
 	}
-
-	while ((dirent = readdir(dir)) != NULL) {
-		if (smells_like_module(dirent->d_name))
-			next = grab_module(dirname, dirent->d_name, next);
-		else if (!streq(dirent->d_name, ".")
-			 && !streq(dirent->d_name, "..")) {
-			struct stat st;
-
-			char subdir[strlen(dirname) + 1
-				   + strlen(dirent->d_name) + 1];
-			sprintf(subdir, "%s/%s", dirname, dirent->d_name);
-			if (lstat(subdir, &st) != 0)
-				warn("Couldn't stat %s: %s\n", subdir,
-				     strerror(errno));
-			else if (S_ISDIR(st.st_mode))
-				next = grab_dir(subdir, next);
-		}
-	}
+	list = grab_dir(dirname, dir, NULL, do_normal_module);
 	closedir(dir);
-	return next;
+
+	sprintf(updatedir, "%s/updates", dirname);
+	dir = opendir(updatedir);
+	if (dir) {
+		list = grab_dir(updatedir, dir, list, do_update_module);
+		closedir(dir);
+	}
+	return list;
+}
+
+static void parse_modules(struct module *list)
+{
+	struct module *i;
+
+	for (i = list; i; i = i->next) {
+		i->ops->load_symbols(i);
+		i->ops->fetch_tables(i);
+	}
 }
 
 /* Convert filename to the module name.  Works if filename == modname, too. */
@@ -688,6 +774,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'h':
 			print_usage(argv[0]);
+			exit(0);
 			break;
 		case 'n':
 			doing_stdout = 1;
@@ -744,11 +831,17 @@ int main(int argc, char *argv[])
 
 	if (!all) {
 		/* Do command line args. */
-		for (opt = optind + 1; opt < argc; opt++)
-			list = grab_module("", argv[opt], list);
+		for (opt = optind + 1; opt < argc; opt++) {
+			struct module *new = grab_module("", argv[opt]);
+			if (new) {
+				new->next = list;
+				list = new;
+			}
+		}
 	} else {
-		list = grab_dir(dirname, list);
+		list = grab_basedir(dirname);
 	}
+	parse_modules(list);
 
 	for (i = 0; i < sizeof(depfiles)/sizeof(depfiles[0]); i++) {
 		FILE *out;

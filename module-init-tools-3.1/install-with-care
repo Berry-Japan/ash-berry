@@ -8,7 +8,7 @@ eval DEST=\$$#
 case `echo $DEST | tr -s / /` in
     /sbin/insmod.static) ;;# This didn't exist before, OK.
     /sbin/insmod|/sbin/lsmod|/sbin/modprobe|/sbin/rmmod|/sbin/depmod)
-	if [ -f $DEST -a ! -f $DEST.old ]; then
+	if [ -f $DEST ] && [ ! -f $DEST.old ]; then
 	    echo Refusing to install $DEST, move old utils first. >&2
 	    exit 1
 	fi

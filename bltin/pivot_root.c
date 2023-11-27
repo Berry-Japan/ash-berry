@@ -1,10 +1,11 @@
 //---------------------------------------------------------
 //	pivot_root - change the root device
 //
-//		(C)2003 NAKADA
+//		(C)2003-2005 NAKADA
 //---------------------------------------------------------
 
 #include <stdio.h>
+#include <errno.h>
 
 #ifdef __ia64__
 	#include <sys/syscall.h>
@@ -26,7 +27,7 @@ int pivot_root_main(int argc, const char **argv)
 		fprintf(stderr, "usage: %s new_root put_old\n", argv[0]);
 		return 1;
 	}
-	if (pivot_root(argv[1],argv[2]) < 0) {
+	if (pivot_root(argv[1], argv[2]) < 0) {
 		perror("pivot_root");
 		return 1;
 	}

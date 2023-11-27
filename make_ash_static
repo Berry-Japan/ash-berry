@@ -6,14 +6,14 @@ GCC="diet gcc -O2 -Os"
 MAKE="make"
 
 # Build module-init-tools library
-	( cd module-init-tools-3.0 ; \
-	CC="${GCC}" ./configure --prefix=/ && \
-	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C . insmod.o )
+#	( cd module-init-tools-3.0 ; \
+#	CC="${GCC}" ./configure --prefix=/ && \
+#	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C . insmod.o )
 
 # Build static version of ash-berry
 	# We need a VERY small binary, so let's try to use libc5
 	# Packages altgc and lib5-altdev needed
-	${MAKE} mkinit
+	${MAKE} mkinit mknodes
 	CC="${GCC}" ${MAKE} CC="${GCC}" STATIC="-static" LDFLAGS="-s -Wl,-qmagic"
 	mv sh ash.static
 

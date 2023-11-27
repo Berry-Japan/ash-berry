@@ -34,12 +34,10 @@
 
 extern long init_module(void *, unsigned long, const char *);
 
-//static void print_usage(const char *progname)
-static int print_usage(const char *progname)
+static void print_usage(const char *progname)
 {
 	fprintf(stderr, "Usage: %s filename [args]\n", progname);
-	//exit(1);
-	return 1;
+	exit(1);
 }
 
 /* We use error numbers in a loose translation... */
@@ -87,8 +85,7 @@ static void *grab_file(const char *filename, unsigned long *size)
 	return buffer;
 }
 
-//int main(int argc, char *argv[])
-int insmod_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	unsigned int i;
 	long int ret;
@@ -97,15 +94,14 @@ int insmod_main(int argc, char *argv[])
 	char *filename, *options = strdup("");
 	char *progname = argv[0];
 
-	/*if (strstr(argv[0], "insmod.static"))
+	if (strstr(argv[0], "insmod.static"))
 		try_old_version("insmod.static", argv);
 	else
-		try_old_version("insmod", argv);*/
+		try_old_version("insmod", argv);
 
 	if (argv[1] && (streq(argv[1], "--version") || streq(argv[1], "-V"))) {
 		puts(PACKAGE " version " VERSION);
-		//exit(0);
-		return 0;
+		exit(0);
 	}
 
 	/* Ignore old options, for backwards compat. */
@@ -117,21 +113,14 @@ int insmod_main(int argc, char *argv[])
 	}
 
 	filename = argv[1];
-	/*if (!filename)
-		print_usage(progname);*/
-	if (!filename) return print_usage(progname);
+	if (!filename)
+		print_usage(progname);
 
 	/* Rest is options */
 	for (i = 2; i < argc; i++) {
 		options = realloc(options,
-				  strlen(options) + 2 + strlen(argv[i]) + 2);
-		/* Spaces handled by "" pairs, but no way of escaping
-                   quotes */
-		if (strchr(argv[i], ' '))
-			strcat(options, "\"");
+				  strlen(options) + 1 + strlen(argv[i]) + 1);
 		strcat(options, argv[i]);
-		if (strchr(argv[i], ' '))
-			strcat(options, "\"");
 		strcat(options, " ");
 	}
 
@@ -139,17 +128,14 @@ int insmod_main(int argc, char *argv[])
 	if (!file) {
 		fprintf(stderr, "insmod: can't read '%s': %s\n",
 			filename, strerror(errno));
-		//exit(1);
-		return 1;
+		exit(1);
 	}
 
 	ret = init_module(file, len, options);
 	if (ret != 0) {
 		fprintf(stderr, "insmod: error inserting '%s': %li %s\n",
 			filename, ret, moderror(errno));
-		//exit(1);
-		return 1;
+		exit(1);
 	}
-	//exit(0);
-	return 0;
+	exit(0);
 }

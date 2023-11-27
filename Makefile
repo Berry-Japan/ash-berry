@@ -4,7 +4,8 @@ SRCS=	builtins.c cd.c dirent.c bltin/echo.c error.c eval.c exec.c expand.c \
 	mystring.c nodes.c options.c parser.c redir.c show.c \
 	syntax.c trap.c output.c var.c bltin/test.c \
 	bltin/mount.c bltin/umount.c bltin/cat.c bltin/lsmod.c bltin/rmmod.c \
-	bltin/losetup.c bltin/pivot_root.c bltin/sleep.c
+	bltin/sleep.c bltin/losetup.c bltin/pivot_root.c bltin/insmod.c \
+	bltin/rescan.c
 
 OBJ1 =	init.o
 OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
@@ -12,9 +13,10 @@ OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
 	mystring.o nodes.o options.o parser.o redir.o show.o \
 	syntax.o trap.o output.o var.o bltin/test.o \
 	bltin/mount.o bltin/umount.o bltin/cat.o bltin/lsmod.o bltin/rmmod.o \
-	bltin/losetup.o bltin/pivot_root.o bltin/sleep.o
+	bltin/sleep.o bltin/losetup.o bltin/pivot_root.o bltin/insmod.o \
+	bltin/rescan.o
 
-MOD_OBJ = ./module-init-tools-3.0/insmod.o
+#MOD_OBJ = ./module-init-tools-3.1/insmod.o
 
 OBJS =	$(OBJ1) $(OBJ2)
 
@@ -26,8 +28,10 @@ CLEANFILES =\
 	builtins.c builtins.h init.c mkinit mknodes mksyntax \
 	nodes.c nodes.h syntax.c syntax.h token.def
 
-all:	$(OBJS) $(MOD_LIB) $(MOD_OBJ)
-	$(CC) $(STATIC) -o $(PROG) $(OBJS) $(MOD_OBJ) $(LDFLAGS)
+#all:	$(OBJS) $(MOD_LIB) $(MOD_OBJ)
+#	$(CC) $(STATIC) -o $(PROG) $(OBJS) $(MOD_OBJ) $(LDFLAGS)
+all:	$(OBJS) $(MOD_LIB)
+	$(CC) $(STATIC) -o $(PROG) $(OBJS) $(LDFLAGS)
 
 install: all
 	install sh /bin/ash
@@ -64,4 +68,3 @@ clean:
 
 .c.o:
 	${CC} ${CFLAGS} -o $@ -c $<
-

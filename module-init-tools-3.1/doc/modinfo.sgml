@@ -32,7 +32,7 @@
       <command>modinfo</command>
       <arg><option>-0</option></arg>
       <arg><option>-F <replaceable>field</replaceable></option></arg>
-      <arg rep='repeat'>module</arg>
+      <arg rep='repeat'>modulename|filename</arg>
     </cmdsynopsis>
     <cmdsynopsis>
       <command>modinfo -V</command>
@@ -44,7 +44,7 @@
   <refsect1>
     <title>DESCRIPTION</title>
 
-    <para><command>modinfo</command> extracts information the Linux
+    <para><command>modinfo</command> extracts information from the Linux
       Kernel modules given on the command line.  If the module name is
       not a filename, then the
       <filename>/lib/modules/</filename><replaceable>version</replaceable>
@@ -54,7 +54,9 @@
 
     <para><command>modinfo</command> by default lists each attribute
       of the module in form <replaceable>fieldname</replaceable> :
-      <replaceable>value</replaceable>, for easy reading.
+      <replaceable>value</replaceable>, for easy reading.  The
+      filename is listed the same way (although it's not really an
+      attribute).
     </para>
 
     <para>This version of <command>modinfo</command> can understand
@@ -86,7 +88,9 @@
 	    <literal>license</literal>, <literal>param</literal>,
 	    <literal>depends</literal>, and <literal>alias</literal>.
 	    There are often multiple <literal>param</literal>,
-	    <literal>alias</literal> and <literal>depends</literal> fields.
+	    <literal>alias</literal> and <literal>depends</literal>
+	    fields.  The special field <literal>filename</literal>
+	    lists the filename of the module.
 	  </para>
         </listitem>
       </varlistentry>
@@ -102,14 +106,16 @@
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>-a</option> <option>-d</option> <option>-l</option> <option>-p</option>
+        <term><option>-a</option> <option>-d</option> <option>-l</option> <option>-p</option> <option>-n</option>
         </term>
         <listitem>
           <para>
 	    These are shortcuts for <literal>author</literal>,
-	    <literal>description</literal>, <literal>license</literal>
-	    and <literal>param</literal> respectively, to ease the
-	    transition from the old modutils <command>modinfo</command>.
+	    <literal>description</literal>,
+	    <literal>license</literal>.  <literal>param</literal> and
+	    <literal>filename</literal> respectively, to ease the
+	    transition from the old modutils
+	    <command>modinfo</command>.
 	  </para>
         </listitem>
       </varlistentry>
@@ -128,6 +134,11 @@
 	<command>modinfo</command> is simpler and more regular than
 	the older version: scripts attempting to use the default
 	output may get confused with complex fields.
+    </para>
+
+    <para>You can force the new <command>modinfo</command> to always
+	be used, by setting the <literal>NEW_MODINFO</literal>
+	environment variable.
     </para>
   </refsect1>
   <refsect1>

@@ -33,6 +33,8 @@ alias /dev/tts* serial
 alias /dev/ttyS* /dev/tts
 alias /dev/cua* /dev/tts
 alias /dev/input/mouse* mousedev
+alias /dev/apm_bios apm
+alias /dev/misc/apm_bios apm
 alias /dev/misc/atibm atixlmouse
 alias /dev/misc/inportbm msbusmouse
 alias /dev/misc/logibm busmouse

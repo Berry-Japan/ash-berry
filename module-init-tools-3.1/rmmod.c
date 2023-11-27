@@ -69,7 +69,7 @@ static void message(int log, const char *prefix, const char *fmt, ...)
 
 	if (log)
 		// modutils-2.4 would buffer these up
-		syslog(LOG_INFO, buf);
+		syslog(LOG_INFO, "%s", buf);
 	else
 		fprintf(stderr, "%s", buf);
 }

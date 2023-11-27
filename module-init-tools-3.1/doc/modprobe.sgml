@@ -52,7 +52,6 @@
       <command>modprobe</command>
       <arg>-l</arg>
       <arg>-t <replaceable>dirname</replaceable></arg>
-      <arg><option>-a</option></arg>
       <arg><option><replaceable>wildcard</replaceable></option></arg>
     </cmdsynopsis>
     <cmdsynopsis>
@@ -70,7 +69,8 @@
       <command>modprobe</command> looks in the module directory
       <filename>/lib/modules/`uname -r`</filename> for all
       the modules and other files, except for the optional
-      <filename>/etc/modprobe.conf</filename> configuration file
+      <filename>/etc/modprobe.conf</filename> configuration file and
+      <filename>/etc/modprobe.d</filename> directory
       (see <citerefentry>
 	<refentrytitle>modprobe.conf</refentrytitle><manvolnum>5</manvolnum>
       </citerefentry>).
@@ -128,7 +128,8 @@
         </term>
         <listitem>
           <para>This option overrides the default configuration file
-		(<filename>/etc/modprobe.conf</filename>).
+		(<filename>/etc/modprobe.conf</filename> or 
+		<filename>/etc/modprobe.d/</filename> if that isn't found).
 	  </para>
           <para>
 	    This option is passed through <command>install</command>
@@ -305,7 +306,7 @@
         <term><option>-t</option> <option>--type</option>
         </term>
         <listitem>
-          <para>Restrict <option>-l</option> or <option>-a</option> to modules
+          <para>Restrict <option>-l</option> to modules
 		in directories matching the
 		<replaceable>dirname</replaceable> given.  This option
 		is provided for backwards compatibility: see
@@ -358,11 +359,12 @@
           <para>
 	    List the dependencies of a module (or alias), including
 	    the module itself.  This produces a (possibly empty) set
-	    of module filenames, one per line.  It does not run any
-	    install commands which might apply.  Note that
+	    of module filenames, one per line, each starting with
+	    "insmod".  Install commands which apply are shown prefixed by
+	    "install".  It does not run any of the install commands.  Note that
 	    <citerefentry><refentrytitle>modinfo</refentrytitle><manvolnum>8</manvolnum></citerefentry>
 	    can be used to extract dependencies of a module from the
-	    module itself, but knows nothing of aliases.
+	    module itself, but knows nothing of aliases or install commands.
 	  </para>
         </listitem>
       </varlistentry>

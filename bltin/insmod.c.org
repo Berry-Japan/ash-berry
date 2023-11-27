@@ -1,0 +1,111 @@
+/*
+ * insmod(1)-replacement
+ * needed for static ash on tight linux bootdisk
+ */
+
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+//#include <string.h>
+//#include <stdlib.h>
+#include <sys/stat.h>
+#include "bltin.h"
+
+extern long init_module(void *, unsigned long, const char *);
+
+static int syntax(void)
+{
+ error(
+ "Usage: insmod [-f] module\n"
+ "This is a builtin command.\n"
+ );
+ return -1;
+}
+
+static const char *moderror(int err)
+{
+	switch (err) {
+	case ENOEXEC:
+		return "Invalid module format";
+	case ENOENT:
+		return "Unknown symbol in module";
+	case ESRCH:
+		return "Module has wrong symbol version";
+	case EINVAL:
+		return "Invalid parameters";
+	default:
+		return strerror(err);
+	}
+}
+
+static void *grab_file(const char *filename, unsigned long *size)
+{
+ struct stat s;
+ int ret, fd;
+ void *buffer;
+
+ *size = 0;
+ if(stat(filename, &s) || (buffer=malloc(s.st_size))==NULL)  return NULL;
+ fd = open(filename, O_RDONLY, 0);
+ if(fd<0) goto error_exit_free;
+ ret=read(fd,buffer,s.st_size);
+ close(fd);
+ if(ret!=s.st_size) goto error_exit_free;
+ *size = s.st_size;
+ return buffer;
+error_exit_free:
+ free(buffer);
+ return NULL;
+}
+
+int insmodcmd(int argc, char **argv)
+{
+ int i;
+ long int ret;
+ unsigned long len;
+ void *file;
+ char *filename, *options;
+ /* Ignore old options, for backwards compatibility */
+ while(argv[1] && ((!strcmp(argv[1],"-p"))
+		 ||(!strcmp(argv[1],"-s"))
+		 ||(!strcmp(argv[1],"-f"))))
+  {
+   argv++;
+   argc--;
+  }
+
+ filename = argv[1];
+ if(!filename) return(syntax());
+ file = grab_file(filename, &len);
+ if (!file)
+  {
+   fprintf(stderr, "insmod: can't read '%s': %s\n",
+	   filename, strerror(errno));
+   return(-1);
+  }
+ /* Rest off arguments are options */
+ options=strdup("");
+ for(i=2; i<argc; i++)
+  {
+   options=realloc(options, strlen(options) + 2 + strlen(argv[i]) + 2);
+   /* Spaces handled by "" pairs, but no way of escaping quotes */
+   if(strchr(argv[i], ' ')) strcat(options, "\"");
+   strcat(options, argv[i]);
+   if(strchr(argv[i], ' ')) strcat(options, "\"");
+   strcat(options, " ");
+  }
+ signal(SIGSEGV,SIG_IGN);
+ ret = init_module(file,len,options);
+ signal(SIGSEGV,SIG_DFL);
+ free(file);
+ free(options);
+
+ if (ret!=0)
+  {
+   fprintf(stderr, "insmod: error inserting '%s': %li %s\n",
+	filename, ret, moderror(errno));
+   return(-1);
+  }
+  /* We SHOULD free file,options here, too. */
+  return(0);
+}

@@ -22,40 +22,15 @@ build-stamp:
 
 	# Add here commands to compile the package.
 
-# Build modutils library
-	( cd modutils-2.4.15 ; \
-	CC="diet gcc" ./configure --disable-compat-2-0 \
-	--disable-combined \
- 	--disable-rmmod \
-	--disable-lsmod \
-	--disable-kerneld \
-	--disable-insmod-static && \
-	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" depend && \
-	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C util all && \
-	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C obj all && \
-	$(MAKE) CC="diet gcc" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C insmod insmod.o )
-
 # Build static version of ash-knoppix
 	# We need a VERY small binary, so let's try to use libc5
 	# Packages altgc and lib5-altdev needed
-	$(MAKE) mkinit
+	$(MAKE) mkinit mknodes
 	CC="diet gcc" $(MAKE) CC="diet gcc" STATIC="-static" LDFLAGS="-s -Wl,-qmagic"
 	mv sh ash.static
 
 # Now build a dynamic version of ash-knoppix
 	$(MAKE) clean
-	$(MAKE) -C modutils-2.4.15 clean
-	( cd modutils-2.4.15 ; \
-	CC="gcc" ./configure --disable-compat-2-0 \
-	--disable-combined \
- 	--disable-rmmod \
-	--disable-lsmod \
-	--disable-kerneld \
-	--disable-insmod-static && \
-	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" depend && \
-	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" -C util all && \
-	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" -C obj all && \
-	$(MAKE) CC="gcc" CFLAGS="-DNDEBUG -Derror=merror -Os" -C insmod insmod.o )
 	$(MAKE) RPM_OPT_FLAGS="-Os" LDFLAGS="-s"
 	mv sh ash
 
@@ -68,7 +43,6 @@ clean:
 
 	# Add here commands to clean up after the build process.
 	-rm -f ash ash.static
-	-$(MAKE) -C modutils-2.4.15 clean
 	-$(MAKE) clean
 
 	dh_clean

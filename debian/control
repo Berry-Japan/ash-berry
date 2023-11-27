@@ -1,4 +1,4 @@
-Source: ash-knoppix
+Source: ash-knoppix-26
 Section: base
 Priority: optional
 Maintainer: Klaus Knopper <knoppix@knopper.net>
@@ -6,7 +6,7 @@ Build-Depends: debhelper (>> 3.0.0)
 Build-Depends: dietlibc-dev (>> 0.15)
 Standards-Version: 3.5.2
 
-Package: ash-knoppix
+Package: ash-knoppix-26
 Architecture: any
 Depends: ${shlibs:Depends}
 Conflicts: ash

@@ -3,7 +3,7 @@
 .\" <http://shell.ipoline.com/~elmert/comp/docbook2X/> 
 .\" Please send any bug reports, improvements, comments, patches, 
 .\" etc. to Steve Cheng <steve@ggi-project.org>.
-.TH "MODPROBE" "8" "17 January 2004" "" ""
+.TH "MODPROBE" "8" "12 November 2004" "" ""
 
 .SH NAME
 modprobe \- program to add and remove modules from the Linux Kernel
@@ -15,7 +15,7 @@ modprobe \- program to add and remove modules from the Linux Kernel
 \fBmodprobe\fR [ \fB-r\fR ] [ \fB-v\fR ] [ \fB-n\fR ] [ \fB-i\fR ] [ \fB\fImodulename\fB\fR\fI ...\fR ]
 
 
-\fBmodprobe\fR [ \fB-l\fR ] [ \fB-t \fIdirname\fB\fR ] [ \fB-a\fR ] [ \fB\fIwildcard\fB\fR ]
+\fBmodprobe\fR [ \fB-l\fR ] [ \fB-t \fIdirname\fB\fR ] [ \fB\fIwildcard\fB\fR ]
 
 
 \fBmodprobe\fR [ \fB-c\fR ]
@@ -28,7 +28,8 @@ is no difference between _ and - in module names.
 \fBmodprobe\fR looks in the module directory
 \fI/lib/modules/`uname -r`\fR for all
 the modules and other files, except for the optional
-\fI/etc/modprobe.conf\fR configuration file
+\fI/etc/modprobe.conf\fR configuration file and
+\fI/etc/modprobe.d\fR directory
 (see \fBmodprobe.conf\fR(5)).
 .PP
 Note that this version of \fBmodprobe\fR does not
@@ -62,7 +63,8 @@ MODPROBE_OPTIONS environment variable.
 .TP
 \fB-C --config \fR
 This option overrides the default configuration file
-(\fI/etc/modprobe.conf\fR).
+(\fI/etc/modprobe.conf\fR or 
+\fI/etc/modprobe.d/\fR if that isn't found).
 
 This option is passed through \fBinstall\fR
 or \fBremove\fR commands to other
@@ -160,7 +162,7 @@ option is provided for backwards compatibility: see
 \fBbasename\fR(1) for a more flexible alternative.
 .TP
 \fB-t --type \fR
-Restrict \fB-l\fR or \fB-a\fR to modules
+Restrict \fB-l\fR to modules
 in directories matching the
 \fIdirname\fR given.  This option
 is provided for backwards compatibility: see
@@ -189,11 +191,12 @@ compatibility checks (so
 \fB--show-depends \fR
 List the dependencies of a module (or alias), including
 the module itself.  This produces a (possibly empty) set
-of module filenames, one per line.  It does not run any
-install commands which might apply.  Note that
+of module filenames, one per line, each starting with
+"insmod".  Install commands which apply are shown prefixed by
+"install".  It does not run any of the install commands.  Note that
 \fBmodinfo\fR(8)
 can be used to extract dependencies of a module from the
-module itself, but knows nothing of aliases.
+module itself, but knows nothing of aliases or install commands.
 .TP
 \fB-o --name \fR
 This option tries to rename the module which is being

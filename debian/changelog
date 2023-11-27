@@ -1,3 +1,9 @@
+ash-knoppix-26 (0.2-4) unstable; urgency=low
+
+  * Kernel 2.6 insmod
+
+ -- root <root@Knoppix>  Mon, 28 Apr 2003 01:09:48 +0200
+
 ash-knoppix (0.2-4) unstable; urgency=low
 
   * Added sleep builtin command

@@ -1,3 +1,27 @@
+3.1 Version:
+o modprobe, rmmod: Fix format string (thanks to Sergey Vlasov)
+o modinfo: support -n, and by default display filename.
+o modprobe: allow -o with -r to remove renamed modules with deps correct.
+o modprobe: fall back to /etc/modprobe.d if fail on /etc/modprobe.conf.
+o modprobe: allow config files to be directories, and recurse.
+o modprobe: Fix quoting of cmdline options.
+o insmod: remove quote handling, since we didn't do it right.
+o depmod: ignore symbols (eg. PCI ids) in BSS (patch from Marc Boucher).
+o depmod: exit after -h.
+o modprobe: file locking on modules to avoid spurious errors if they race (report from Marc Boucher)
+o modprobe: Fall back to read-only (no locking) if rw open on module fails
+o depmod: updates/ dir overrides (for RH, thanks to Thomas Vander Stichele)
+o depmod: don't follow symlinks, broken in updates/ rework (thanks to Marco d'Itri)
+o Bashisms removed (thanks to David Weinehall)
+o modinfo: use modules.dep, not manual search, so we get updates/ right.
+o Fix modinfo manpage missing word (thanks Debian)
+o modprobe.devfs: added apm_bios devices (thanks Debian)
+o modprobe: don't fatal() on missing includes (thanks Debian)
+o modprobe: install/remove commands must override modules.alias file.
+o Fix modprobe man page to document --show-depends and install commands (reported by Eric C. Cooper)
+o Fix modprobe man page: -t -a removed in 3.0 (report from Thomas Hood)
+o Document modprobe.d in modprobe(.conf) man page (report from Stefan Richter)
+	
 3.0 Version:
 o Update missing script (report from Robin Grindley)
 o "depmod <version>" implies -a (report from Robin Grindley)

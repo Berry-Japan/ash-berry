@@ -1,5 +1,5 @@
 /*
- * cheap lsmod(1)-replacement --  author Klaus Knopper
+ * cheap rmmod(1)-replacement --  author Klaus Knopper
  * needed for static ash on tight linux bootdisk
  */
 #include <errno.h>

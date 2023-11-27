@@ -40,6 +40,7 @@
 #include <syslog.h>
 
 #define streq(a,b) (strcmp((a),(b)) == 0)
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #include "zlibsupport.h"
 #include "list.h"
@@ -71,7 +72,7 @@ static void message(const char *prefix, const char *fmt, va_list *arglist)
 	asprintf(&buf2, "%s%s", prefix, buf);
 
 	if (log)
-		syslog(LOG_NOTICE, buf2);
+		syslog(LOG_NOTICE, "%s", buf2);
 	else
 		fprintf(stderr, "%s", buf2);
 	free(buf2);
@@ -193,6 +194,29 @@ static void filename2modname(char *modname, const char *filename)
 			modname[i] = afterslash[i];
 	}
 	modname[i] = '\0';
+}
+
+static int lock_file(const char *filename)
+{
+	int fd = open(filename, O_RDWR, 0);
+
+	if (fd >= 0) {
+		struct flock lock;
+		lock.l_type = F_WRLCK;
+		lock.l_whence = SEEK_SET;
+		lock.l_start = 0;
+		lock.l_len = 1;
+		fcntl(fd, F_SETLKW, &lock);
+	} else
+		/* Read-only filesystem?  There goes locking... */
+		fd = open(filename, O_RDONLY, 0);
+	return fd;
+}
+
+static void unlock_file(int fd)
+{
+	/* Valgrind is picky... */
+	close(fd);
 }
 
 static void add_module(char *filename, int namelen, struct list_head *list)
@@ -694,7 +718,7 @@ static void insmod(struct list_head *list,
 		   int strip_vermagic,
 		   int strip_modversion)
 {
-	int ret;
+	int ret, fd;
 	unsigned long len;
 	void *map;
 	const char *command;
@@ -711,6 +735,13 @@ static void insmod(struct list_head *list,
 		       strip_vermagic, strip_modversion);
 	}
 
+	fd = lock_file(mod->filename);
+	if (fd < 0) {
+		error("Could not open '%s': %s\n",
+		      mod->filename, strerror(errno));
+		goto out_optstring;
+	}
+
 	/* Don't do ANYTHING if already in kernel. */
 	if (!ignore_proc
 	    && module_in_kernel(newname ?: mod->modname, NULL) == 1)
@@ -718,16 +749,18 @@ static void insmod(struct list_head *list,
 
 	command = find_command(mod->modname, commands);
 	if (command && !ignore_commands) {
+		/* It might recurse: unlock. */
+		unlock_file(fd);
 		do_command(mod->modname, command, verbose, dry_run, error,
 			   "install");
 		goto out_optstring;
 	}
 
-	map = grab_file(mod->filename, &len);
+	map = grab_fd(fd, &len);
 	if (!map) {
-		error("Could not open '%s': %s\n",
+		error("Could not read '%s': %s\n",
 		      mod->filename, strerror(errno));
-		goto out_optstring;
+		goto out_unlock;
 	}
 
 	/* Rename it? */
@@ -756,6 +789,8 @@ static void insmod(struct list_head *list,
 	}
  out:
 	release_file(map, len);
+ out_unlock:
+	unlock_file(fd);
  out_optstring:
 	free(optstring);
 	return;
@@ -764,11 +799,12 @@ exists_error:
 	if (first_time)
 		error("Module %s already in kernel.\n",
 		      newname ?: mod->modname);
-	goto out_optstring;
+	goto out_unlock;
 }
 
 /* Do recursive removal. */
 static void rmmod(struct list_head *list,
+		  const char *name,
 		  int first_time,
 		  errfn_t error,
 		  int dry_run,
@@ -779,24 +815,34 @@ static void rmmod(struct list_head *list,
 {
 	const char *command;
 	unsigned int usecount = 0;
+	int lock;
 	struct module *mod = list_entry(list->next, struct module, list);
 
 	/* Take first one off the list. */
 	list_del(&mod->list);
 
+	/* Ignore failure; it's best effort here. */
+	lock = lock_file(mod->filename);
+
+	if (!name)
+		name = mod->modname;
+
+	/* Even if renamed, find commands to orig. name. */
 	command = find_command(mod->modname, commands);
 	if (command && !ignore_commands) {
+		/* It might recurse: unlock. */
+		unlock_file(lock);
 		do_command(mod->modname, command, verbose, dry_run, error,
 			   "remove");
-		goto remove_rest;
+		goto remove_rest_no_unlock;
 	}
 
-	if (module_in_kernel(mod->modname, &usecount) == 0)
+	if (module_in_kernel(name, &usecount) == 0)
 		goto nonexistent_module;
 
 	if (usecount != 0) {
 		if (!ignore_inuse)
-			error("Module %s is in use.\n", mod->modname);
+			error("Module %s is in use.\n", name);
 		goto remove_rest;
 	}
 
@@ -805,18 +851,20 @@ static void rmmod(struct list_head *list,
 	if (dry_run)
 		goto remove_rest;
 
-	if (delete_module(mod->modname, O_EXCL) != 0) {
+	if (delete_module(name, O_EXCL) != 0) {
 		if (errno == ENOENT)
 			goto nonexistent_module;
 		error("Error removing %s (%s): %s\n",
-		      mod->modname, mod->filename,
+		      name, mod->filename,
 		      remove_moderror(errno));
 	}
 
  remove_rest:
+	unlock_file(lock);
+ remove_rest_no_unlock:
 	/* Now do things we depend. */
 	if (!list_empty(list))
-		rmmod(list, 0, warn, dry_run, verbose, commands,
+		rmmod(list, NULL, 0, warn, dry_run, verbose, commands,
 		      0, 1);
 	return;
 
@@ -902,30 +950,31 @@ static char *strsep_skipspace(char **string, char *delim)
 	return strsep(string, delim);
 }
 
-/* FIXME: Maybe should be extended to "alias a b [and|or c]...". --RR */
+/* Recursion */
+static int read_config(const char *filename,
+		       const char *name,
+		       int dump_only,
+		       int removing,
+		       struct module_options **options,
+		       struct module_command **commands,
+		       char **alias);
 
-/* Simple format, ignore lines starting with #, one command per line.
-   Returns NULL or resolved alias. */
-static char *read_config(const char *filename,
-			 int mustload,
-			 const char *name,
-			 int dump_only,
-			 int removing,
-			 struct module_options **options,
-			 struct module_command **commands)
+/* FIXME: Maybe should be extended to "alias a b [and|or c]...". --RR */
+static int read_config_file(const char *filename,
+			    const char *name,
+			    int dump_only,
+			    int removing,
+			    struct module_options **options,
+			    struct module_command **commands,
+			    char **alias)
 {
-	FILE *cfile;
 	char *line;
-	char *result = NULL;
 	unsigned int linenum = 0;
+	FILE *cfile;
 
 	cfile = fopen(filename, "r");
-	if (!cfile) {
-		if (mustload)
-			fatal("Failed to open config file %s: %s\n",
-			      filename, strerror(errno));
-		return NULL;
-	}
+	if (!cfile)
+		return 0;
 
 	while ((line = getline_wrapped(cfile, &linenum)) != NULL) {
 		char *ptr = line;
@@ -947,21 +996,25 @@ static char *read_config(const char *filename,
 			if (!wildcard || !realname)
 				grammar(cmd, filename, linenum);
 			else if (fnmatch(wildcard,name,0) == 0)
-				result = NOFAIL(strdup(realname));
+				*alias = NOFAIL(strdup(realname));
 		} else if (strcmp(cmd, "include") == 0) {
-			char *newresult, *newfilename;
+			char *newalias = NULL, *newfilename;
 
 			newfilename = strsep_skipspace(&ptr, "\t ");
 			if (!newfilename)
 				grammar(cmd, filename, linenum);
 			else {
-				newresult = read_config(newfilename, 1, name,
-							dump_only, removing,
-							options, commands);
+				if (!read_config(newfilename, name,
+						 dump_only, removing,
+						 options, commands, &newalias))
+					warn("Failed to open included"
+					      " config file %s: %s\n",
+					      newfilename, strerror(errno));
+
 				/* Files included override aliases,
 				   etc that was already set ... */
-				if (newresult)
-					result = newresult;
+				if (newalias)
+					*alias = newalias;
 			}
 		} else if (strcmp(cmd, "options") == 0) {
 			modname = strsep_skipspace(&ptr, "\t ");
@@ -996,8 +1049,78 @@ static char *read_config(const char *filename,
 		free(line);
 	}
 	fclose(cfile);
+	return 1;
+}
 
-	return result;
+/* Simple format, ignore lines starting with #, one command per line.
+   Returns NULL or resolved alias. */
+static int read_config(const char *filename,
+		       const char *name,
+		       int dump_only,
+		       int removing,
+		       struct module_options **options,
+		       struct module_command **commands,
+		       char **alias)
+{
+	DIR *dir;
+
+	/* If it's a directory, recurse. */
+	dir = opendir(filename);
+	if (dir) {
+		struct dirent *i;
+
+		while ((i = readdir(dir)) != NULL) {
+			if (!streq(i->d_name,".") && !streq(i->d_name,"..")) {
+				char sub[strlen(filename) + 1
+					 + strlen(i->d_name) + 1];
+
+				sprintf(sub, "%s/%s", filename, i->d_name);
+				if (!read_config(sub, name,
+						 dump_only, removing,
+						 options, commands, alias))
+					warn("Failed to open"
+					      " config file %s: %s\n",
+					      sub, strerror(errno));
+			}
+		}
+		closedir(dir);
+		return 1;
+	}
+
+	return read_config_file(filename, name, dump_only, removing,
+				options, commands, alias);
+}
+
+static const char *default_configs[] = 
+{
+	"/etc/modprobe.conf",
+	"/etc/modprobe.d",
+};
+
+static void read_toplevel_config(const char *filename,
+				 const char *name,
+				 int dump_only,
+				 int removing,
+				 struct module_options **options,
+				 struct module_command **commands,
+				 char **alias)
+{
+	unsigned int i;
+
+	if (filename) {
+		if (!read_config(filename, name, dump_only, removing,
+				 options, commands, alias))
+			fatal("Failed to open config file %s: %s\n",
+			      filename, strerror(errno));
+		return;
+	}
+
+	/* Try defaults. */
+	for (i = 0; i < ARRAY_SIZE(default_configs); i++) {
+		if (read_config(default_configs[i], name, dump_only,
+				removing, options, commands, alias))
+			return;
+	}
 }
 
 static void add_to_env_var(const char *option)
@@ -1046,12 +1169,14 @@ static char *gather_options(char *argv[])
 
 	/* Rest is module options */
 	while (*argv) {
-		if (strchr(*argv, ' ')) {
-			/* Spaces handled by "" pairs, but no way of
-			   escaping quotes */
-			char protected_option[strlen(optstring) + 3];
-			sprintf(protected_option, "\"%s\"", *argv);
-			optstring = append_option(optstring, protected_option);
+		/* Quote value if it contains spaces. */
+		unsigned int eq = strcspn(*argv, "=");
+
+		if (strchr(*argv+eq, ' ') && !strchr(*argv, '"')) {
+			char quoted[strlen(*argv) + 3];
+			(*argv)[eq] = '\0';
+			sprintf(quoted, "%s=\"%s\"", *argv, *argv+eq+1);
+			optstring = append_option(optstring, quoted);
 		} else
 			optstring = append_option(optstring, *argv);
 		argv++;
@@ -1084,7 +1209,6 @@ static struct option options[] = { { "verbose", 0, NULL, 'v' },
 				   { "first-time", 0, NULL, 3 },
 				   { NULL, 0, NULL, 0 } };
 
-#define DEFAULT_CONFIG "/etc/modprobe.conf"
 #define MODPROBE_DEVFSD_CONF "/etc/modprobe.devfs"
 
 /* This is a horrible hack to allow devfsd, which calls modprobe with
@@ -1123,7 +1247,7 @@ int main(int argc, char *argv[])
 	char *type = NULL;
 	const char *config = NULL, *command = NULL;
 	char *dirname, *optstring;
-	char *modname, *newname = NULL;
+	char *newname = NULL;
 	char *aliasfilename, *symfilename;
 	errfn_t error = fatal;
 
@@ -1267,21 +1391,18 @@ int main(int argc, char *argv[])
 	if (dump_only) {
 		struct module_command *commands = NULL;
 		struct module_options *modoptions = NULL;
+		char *a = NULL;
 
-		read_config(config ?: DEFAULT_CONFIG,
-			    config ? 1 : 0, "", 1, 0, &modoptions, &commands);
-		read_config(aliasfilename, 0, "", 1, 0,&modoptions, &commands);
-		read_config(symfilename, 0, "", 1, 0, &modoptions, &commands);
+		read_toplevel_config(config, "", 1, 0,
+				     &modoptions, &commands, &a);
+		read_config(aliasfilename, "", 1, 0,&modoptions, &commands,&a);
+		read_config(symfilename, "", 1, 0, &modoptions, &commands, &a);
 		exit(0);
 	}
 
 	if (remove || all) {
 		num_modules = argc - optind;
 		optstring = NOFAIL(strdup(""));
-		/* -r only allows certain restricted options */
-		if (newname)
-			fatal("Can't specify replacement name with -%c\n",
-			      remove ? 'r' : 'a');
 	} else {
 		num_modules = 1;
 		optstring = gather_options(argv+optind+1);
@@ -1293,21 +1414,20 @@ int main(int argc, char *argv[])
 		struct module_options *modoptions = NULL;
 		LIST_HEAD(list);
 		char *modulearg = argv[optind + i];
+		char *modname = NULL;
 
 		/* Convert name we are looking for */
 		underscores(modulearg);
 
 		/* Returns the resolved alias, options */
-		modname = read_config(config ?: DEFAULT_CONFIG,
-				      config ? 1 : 0,
-				      modulearg, 0,
-				      remove, &modoptions, &commands);
+		read_toplevel_config(config, modulearg, 0,
+				     remove, &modoptions, &commands, &modname);
 
 		/* No luck?  Try symbol names, if starts with symbol:. */
 		if (!modname
 		    && strncmp(modulearg, "symbol:", strlen("symbol:") == 0))
-			modname = read_config(symfilename, 0, modulearg, 0,
-					      remove, &modoptions, &commands);
+			read_config(symfilename, modulearg, 0,
+				    remove, &modoptions, &commands, &modname);
 
 		/* If we have an alias, gather any options associated with it
 		   (needs to happen after parsing complete). */
@@ -1318,13 +1438,16 @@ int main(int argc, char *argv[])
 			read_depends(dirname, modname, &list);
 		} else {
 			read_depends(dirname, modulearg, &list);
-			/* We don't allow canned aliases to override real
-			   modules, so we delay lookup until now. */
+			/* We don't allow canned aliases to override
+			   real modules, or install commands, so we
+			   delay lookup until now. */
 			if (list_empty(&list)
-			    && (modname = read_config(aliasfilename, 0,
-						      modulearg, 0,
-						      remove, &modoptions,
-						      &commands)))
+			    && !find_command(modulearg, commands)
+			    && read_config(aliasfilename,
+					   modulearg, 0,
+					   remove, &modoptions,
+					   &commands, &modname)
+			    && modname)
 				goto got_modname;
 
 			modname = strdup(modulearg);
@@ -1346,8 +1469,8 @@ int main(int argc, char *argv[])
 		}
 
 		if (remove)
-			rmmod(&list, first_time, error, dry_run, verbose,
-			      commands, ignore_commands, 0);
+			rmmod(&list, newname, first_time, error, dry_run,
+			      verbose, commands, ignore_commands, 0);
 		else
 			insmod(&list, NOFAIL(strdup(optstring)), newname,
 			       first_time, error, dry_run, verbose, modoptions,

@@ -116,17 +116,24 @@ static const char *next_string(const char *string, unsigned long *secsize)
 }
 
 static void print_tag(const char *tag, const char *info, unsigned long size,
-		      char sep)
+		      const char *filename, char sep)
 {
 	unsigned int taglen = strlen(tag);
+
+	if (streq(tag, "filename")) {
+		printf("%s%c", filename, sep);
+		return;
+	}
 
 	for (; info; info = next_string(info, &size))
 		if (strncmp(info, tag, taglen) == 0 && info[taglen] == '=')
 			printf("%s%c", info + taglen + 1, sep);
 }
 
-static void print_all(const char *info, unsigned long size, char sep)
+static void print_all(const char *info, unsigned long size,
+		      const char *filename, char sep)
 {
+	printf("%-16s%s%c", "filename:", filename, sep);
 	for (; info; info = next_string(info, &size)) {
 		char *eq;
 		if (!sep) {
@@ -152,6 +159,7 @@ static struct option options[] =
 	{"description", 0, 0, 'd'},
 	{"license", 0, 0, 'l'},
 	{"parameters", 0, 0, 'p'},
+	{"filename", 0, 0, 'n'},
 	{"version", 0, 0, 'V'},
 	{"help", 0, 0, 'h'},
 	{"null", 0, 0, '0'},
@@ -159,83 +167,100 @@ static struct option options[] =
 	{0, 0, 0, 0}
 };
 
-/* - and _ are equivalent, and expect .ko or .ko.gz suffix. */
-static int name_matches(const char *basename, const char *modname)
+/* - and _ are equivalent, and expect suffix. */
+static int name_matches(const char *line, const char *end, const char *modname)
 {
 	unsigned int i;
+	char *p;
+
+	/* Ignore comment lines */
+	if (line[strspn(line, "\t ")] == '#')
+		return 0;
+
+	/* Find last / before colon. */
+	p = memchr(line, ':', end - line);
+	if (!p)
+		return 0;
+	while (p > line) {
+		if (*p == '/') {
+			p++;
+			break;
+		}
+		p--;
+	}
 
 	for (i = 0; modname[i]; i++) {
-		if (modname[i] == basename[i])
+		/* Module names can't have colons. */
+		if (modname[i] == ':')
 			continue;
-		if (modname[i] == '_' && basename[i] == '-')
+		if (modname[i] == p[i])
 			continue;
-		if (modname[i] == '-' && basename[i] == '_')
+		if (modname[i] == '_' && p[i] == '-')
+			continue;
+		if (modname[i] == '-' && p[i] == '_')
 			continue;
 		return 0;
 	}
-	if (streq(basename+i, ".ko") || streq(basename+i, ".ko.gz"))
-		return 1;
-	return 0;
+	/* Must match all the way to the extension */
+	return (p[i] == '.');
 }
 
-static void *find_module(const char *dirname, const char *modname,
-			 unsigned long *size)
+static char *next_line(char *p, const char *end)
 {
-	DIR *dir;
-	struct dirent *dirent;
+	char *eol;
 
-	dir = opendir(dirname);
-	if (!dir)
-		return NULL;
-
-	while ((dirent = readdir(dir)) != NULL) {
-		char fullpath[strlen(dirname) + 1 + strlen(dirent->d_name)+1];
-
-		sprintf(fullpath, "%s/%s", dirname, dirent->d_name);
-
-		if (name_matches(dirent->d_name, modname))
-			return grab_file(fullpath, size);
-
-		if (!streq(dirent->d_name,".") && !streq(dirent->d_name,"..")){
-			struct stat st;
-			if (lstat(fullpath, &st) == 0 && S_ISDIR(st.st_mode)) {
-				void *data = find_module(fullpath, modname,
-							 size);
-				if (data) {
-					closedir(dir);
-					return data;
-				}
-			}
-		}
-	}
-	closedir(dir);
-	return NULL;
+	eol = memchr(p, '\n', end - p);
+	if (eol)
+		return eol + 1;
+	return (char *)end + 1;
 }
 
-
-static void *grab_module(const char *name, unsigned long *size)
+static void *grab_module(const char *name, unsigned long *size, char**filename)
 {
-	void *data;
+	char *data;
 	struct utsname buf;
-	char *dirname;
+	char *depname, *p;
 
 	data = grab_file(name, size);
-	if (data)
+	if (data) {
+		*filename = strdup(name);
 		return data;
+	}
 	if (errno != ENOENT) {
 		fprintf(stderr, "modinfo: could not open %s: %s\n",
 			name, strerror(errno));
 		return NULL;
 	}
 
-	/* Search for it. */
+	/* Search for it in modules.dep. */
 	uname(&buf);
-	asprintf(&dirname, "%s/%s", MODULE_DIR, buf.release);
-	data = find_module(dirname, name, size);
-	if (!data)
-		fprintf(stderr, "modinfo: could not find module %s\n", name);
-	free(dirname);
-	return data;
+	asprintf(&depname, "%s/%s/modules.dep", MODULE_DIR, buf.release);
+	data = grab_file(depname, size);
+	if (!data) {
+		fprintf(stderr, "modinfo: could not open %s\n", depname);
+		free(depname);
+		return NULL;
+	}
+	free(depname);
+
+	for (p = data; p < data + *size; p = next_line(p, data + *size)) {
+		if (name_matches(p, data + *size, name)) {
+			int namelen = strcspn(p, ":");
+			*filename = malloc(namelen + 1);
+			memcpy(*filename, p, namelen);
+			(*filename)[namelen] = '\0';
+			release_file(data, *size);
+			data = grab_file(*filename, size);
+			if (!data)
+				fprintf(stderr,
+					"modinfo: could not open %s: %s\n",
+					*filename, strerror(errno));
+			return data;
+		}
+	}
+	release_file(data, *size);
+	fprintf(stderr, "modinfo: could not find module %s\n", name);
+	return NULL;
 }
 
 static void usage(const char *name)
@@ -271,6 +296,7 @@ int main(int argc, char *argv[])
 		case 'd': field = "description"; break;
 		case 'l': field = "license"; break;
 		case 'p': field = "parm"; break;
+		case 'n': field = "filename"; break;
 		case 'V': printf(PACKAGE " version " VERSION "\n"); exit(0);
 		case 'F': field = optarg; break;
 		case '0': sep = '\0'; break;
@@ -284,8 +310,9 @@ int main(int argc, char *argv[])
 	for (opt = optind; opt < argc; opt++) {
 		void *info, *mod;
 		unsigned long modulesize;
+		char *filename;
 
-		mod = grab_module(argv[opt], &modulesize);
+		mod = grab_module(argv[opt], &modulesize, &filename);
 		if (!mod) {
 			ret = 1;
 			continue;
@@ -295,9 +322,10 @@ int main(int argc, char *argv[])
 		if (!info)
 			continue;
 		if (field)
-			print_tag(field, info, infosize, sep);
+			print_tag(field, info, infosize, filename, sep);
 		else
-			print_all(info, infosize, sep);
+			print_all(info, infosize, filename, sep);
+		free(filename);
 	}
 	return ret;
 }

@@ -1,21 +1,10 @@
-/* insmod.c: insert a module into the kernel.
-    Copyright (C) 2001  Rusty Russell.
-    Copyright (C) 2002  Rusty Russell, IBM Corporation.
+//---------------------------------------------------------
+//	insmod(1)-replacement
+//	needed for static ash on tight linux bootdisk
+//
+//		(C)2005 NAKADA
+//---------------------------------------------------------
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -28,16 +17,18 @@
 #include <errno.h>
 #include <asm/unistd.h>
 
-#include "backwards_compat.c"
+//#include "backwards_compat.c"
 
 #define streq(a,b) (strcmp((a),(b)) == 0)
 
 extern long init_module(void *, unsigned long, const char *);
 
-static void print_usage(const char *progname)
+//static void print_usage(const char *progname)
+static int print_usage(const char *progname)
 {
 	fprintf(stderr, "Usage: %s filename [args]\n", progname);
-	exit(1);
+	//exit(1);
+	return 1;
 }
 
 /* We use error numbers in a loose translation... */
@@ -85,7 +76,7 @@ static void *grab_file(const char *filename, unsigned long *size)
 	return buffer;
 }
 
-int main(int argc, char *argv[])
+int insmodcmd(int argc, char *argv[])
 {
 	unsigned int i;
 	long int ret;
@@ -94,27 +85,27 @@ int main(int argc, char *argv[])
 	char *filename, *options = strdup("");
 	char *progname = argv[0];
 
-	if (strstr(argv[0], "insmod.static"))
+	/*if (strstr(argv[0], "insmod.static"))
 		try_old_version("insmod.static", argv);
 	else
-		try_old_version("insmod", argv);
+		try_old_version("insmod", argv);*/
 
-	if (argv[1] && (streq(argv[1], "--version") || streq(argv[1], "-V"))) {
+	/*if (argv[1] && (streq(argv[1], "--version") || streq(argv[1], "-V"))) {
 		puts(PACKAGE " version " VERSION);
-		exit(0);
-	}
+		//exit(0);
+		return 0;
+	}*/
 
 	/* Ignore old options, for backwards compat. */
 	while (argv[1] && (streq(argv[1], "-p")
-			   || streq(argv[1], "-s")
-			   || streq(argv[1], "-f"))) {
+			|| streq(argv[1], "-s")
+			|| streq(argv[1], "-f"))) {
 		argv++;
 		argc--;
 	}
 
 	filename = argv[1];
-	if (!filename)
-		print_usage(progname);
+	if (!filename) return print_usage(progname);
 
 	/* Rest is options */
 	for (i = 2; i < argc; i++) {
@@ -134,14 +125,17 @@ int main(int argc, char *argv[])
 	if (!file) {
 		fprintf(stderr, "insmod: can't read '%s': %s\n",
 			filename, strerror(errno));
-		exit(1);
+		//exit(1);
+		return 1;
 	}
 
 	ret = init_module(file, len, options);
 	if (ret != 0) {
 		fprintf(stderr, "insmod: error inserting '%s': %li %s\n",
 			filename, ret, moderror(errno));
-		exit(1);
+		//exit(1);
+		return 1;
 	}
-	exit(0);
+	//exit(0);
+	return 0;
 }

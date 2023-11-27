@@ -1,7 +1,7 @@
 Frequently Asked Module User Questions
 
 Q) Is there an RPM of this?
-A) Arjan has done some: http://people.redhat.com/arjanv/2.5/RPMS.kernel/
+A) Arjan has done some: http://people.redhat.com/arjanv/2.6/RPMS.kernel/
 
 Q) I get "/usr/bin/ld: cannot find -lc"
 A) You need to install a development package which contains libc.a.
@@ -32,7 +32,7 @@ A) It means somone used an old-style interfaces to try to control this
    CONFIG_MODULE_FORCE_UNLOAD set.
 
 Q) I'm having trouble inserting out-of-tree modules
-A) See discussion at
-   http://hypermail.idiosynkrasia.net/linux-kernel/archived/2002/week23/0162.html
+A) See kernel source tree documentation: Documentation/kbuild/modules.txt
+   
 
 

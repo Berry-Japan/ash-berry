@@ -1604,7 +1604,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=module-init-tools
- VERSION="3.0"
+ VERSION="3.1"
 
 
 cat >>confdefs.h <<_ACEOF

@@ -132,9 +132,11 @@ parsecmd(interact) {
 	if (doprompt) {
 //		putprompt(ps1val());
 
+		// プロンプトを作成
 		int i, n;
 		char pwd[256];
 		if (getcwd(pwd, 256)) {
+			// カレントディレクトリを取得
 			i=0;
 			while (i < 256 && pwd[i] != '\0') i++;
 			if (pwd[i-1] == '/') pwd[i++]='/';	/* for / */
@@ -186,7 +188,7 @@ list(nlflag) {
 		case TNL:
 			tokpushback++;
 			/* fall through */
-tsemi:	    case TSEMI:
+tsemi:		case TSEMI:
 			if (readtoken() == TNL) {
 				parseheredoc();
 				if (nlflag)
@@ -635,7 +637,7 @@ readtoken() {
 #ifdef DEBUG
 	int alreadyseen = tokpushback;
 #endif
-	
+
 	t = xxreadtoken();
 
 	if (checkkwd) {
@@ -1219,7 +1221,7 @@ attyline() {
 
 /*
  * Output a prompt for atty.  We output the prompt as part of the
- * appropriate escape sequence.  
+ * appropriate escape sequence.
  */
 
 STATIC void

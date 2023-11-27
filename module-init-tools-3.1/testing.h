@@ -36,6 +36,9 @@ static long modtest_init_module(void *map, unsigned long size,
 static long modtest_delete_module(const char *modname, unsigned int flags)
 __attribute__((unused));
 
+static int modtest_readlink(const char *path, char *buf, size_t bufsiz)
+__attribute__((unused));
+
 static int modtest_uname(struct utsname *buf)
 {
 	strcpy(buf->sysname, "Linux");
@@ -57,6 +60,18 @@ static long modtest_create_module(const char *name, size_t size)
 static long modtest_init_module(void *map, unsigned long size,
 				const char *optstring)
 {
+	if (getenv("MODPROBE_WAIT")) {
+		int fd;
+		const char *file = getenv("MODPROBE_WAIT");
+
+		printf("Looping on %s\n", file);
+		fflush(stdout);
+		while ((fd = open(file, O_RDONLY)) < 0)
+			sleep(1);
+		close(fd);
+		printf("Removing %s\n", file);
+		unlink(file);
+	}
 	if (getenv("MODTEST_INSERT_PROC")) {
 		int fd = modtest_open("/proc/modules", O_APPEND|O_WRONLY, 0);
 		write(fd, getenv("MODPROBE_MODULE"), strlen(getenv("MODPROBE_MODULE")));
@@ -82,6 +97,19 @@ static long modtest_delete_module(const char *modname, unsigned int flags)
 {
 	char flagnames[100];
 
+	if (getenv("MODPROBE_WAIT")) {
+		int fd;
+		const char *file = getenv("MODPROBE_WAIT");
+
+		printf("Looping on %s\n", file);
+		fflush(stdout);
+		while ((fd = open(file, O_RDONLY)) < 0)
+			sleep(1);
+		close(fd);
+		printf("Removing %s\n", file);
+		fflush(stdout);
+		unlink(file);
+	}
 	flagnames[0] = '\0';
 	if (flags & O_EXCL)
 		strcat(flagnames, "EXCL ");
@@ -153,6 +181,11 @@ static int modtest_rename(const char *oldpath, const char *newpath)
 	return rename(modtest_mapname(oldpath), modtest_mapname(newpath));
 }
 
+static int modtest_readlink(const char *path, char *buf, size_t bufsiz)
+{
+	return readlink(modtest_mapname(path), buf, bufsiz);
+}
+
 #ifdef CONFIG_USE_ZLIB
 #include <zlib.h>
 static gzFile *modtest_gzopen(const char *filename, const char *mode)
@@ -178,6 +211,7 @@ static gzFile *modtest_gzopen(const char *filename, const char *mode)
 #define opendir modtest_opendir
 #define system modtest_system
 #define rename modtest_rename
+#define readlink modtest_readlink
 #define gzopen modtest_gzopen
 
 #endif /* JUST_TESTING */

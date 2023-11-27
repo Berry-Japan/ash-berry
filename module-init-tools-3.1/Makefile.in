@@ -120,7 +120,7 @@ DIST_DIR := /home/rusty/devel/kernel/www/modules/
 MAINTAINERCLEANFILES := $(man_MANS)
 
 # According to Warren Togami, RH has docbook2man in the docbook-utils rpm.
-DOCBOOKTOMAN := $(shell if type docbook-to-man >/dev/null 2>&1; then echo docbook-to-man; else echo docbook2man; fi)
+DOCBOOKTOMAN := $(shell if command -v docbook-to-man >/dev/null 2>&1; then echo docbook-to-man; else echo docbook2man; fi)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs

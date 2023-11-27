@@ -115,7 +115,7 @@ static void PERBIT(calculate_deps)(struct module *module, int verbose)
 
 			/* Not really undefined: sparc gcc 3.3 creates
                            U references when you have global asm
-                           variables, to avoid anyone else mising
+                           variables, to avoid anyone else misusing
                            them. */
 			if (handle_register_symbols
 			    && (ELFPERBIT(ST_TYPE)(syms[i].st_info)
@@ -153,6 +153,10 @@ static void *PERBIT(deref_sym)(ElfPERBIT(Ehdr) *hdr, const char *name)
 
 	for (i = 0; i < size / sizeof(syms[0]); i++) {
 		if (strcmp(strings + syms[i].st_name, name) == 0) {
+			/* In BSS?  Happens for empty device tables on
+			 * recent GCC versions. */
+			if (sechdrs[syms[i].st_shndx].sh_type == SHT_NOBITS)
+				return NULL;
 			return (void *)hdr
 				+ sechdrs[syms[i].st_shndx].sh_offset
 				+ syms[i].st_value;
