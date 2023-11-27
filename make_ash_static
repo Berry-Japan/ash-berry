@@ -5,18 +5,10 @@ GCC="diet gcc -O2 -Os"
 #GCC="gcc"
 MAKE="make"
 
-# Build modutils library
-	( cd modutils-2.4.25 ; \
-	CC="${GCC}" ./configure --disable-compat-2-0 \
-	--disable-combined \
- 	--disable-rmmod \
-	--disable-lsmod \
-	--disable-kerneld \
-	--disable-insmod-static && \
-	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" depend && \
-	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C util all && \
-	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C obj all && \
-	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C insmod insmod.o )
+# Build module-init-tools library
+	( cd module-init-tools-3.0-pre3 ; \
+	CC="${GCC}" ./configure --prefix=/ && \
+	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C . insmod.o )
 
 # Build static version of ash-berry
 	# We need a VERY small binary, so let's try to use libc5

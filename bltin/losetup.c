@@ -65,7 +65,7 @@ static int crypt_type(const char *name)
 //	show loop device
 //---------------------------------------------------------
 
-static int show_loop (char *device) {
+static int show_loop(char *device) {
 	struct loop_info loopinfo;
 	int fd;
 
