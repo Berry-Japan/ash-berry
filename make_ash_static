@@ -6,7 +6,7 @@ GCC="diet gcc -O2 -Os"
 MAKE="make"
 
 # Build module-init-tools library
-	( cd module-init-tools-3.0-pre3 ; \
+	( cd module-init-tools-3.0 ; \
 	CC="${GCC}" ./configure --prefix=/ && \
 	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C . insmod.o )
 

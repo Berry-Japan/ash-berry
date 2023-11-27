@@ -14,7 +14,7 @@ OBJ2 =	builtins.o cd.o dirent.o bltin/echo.o error.o eval.o exec.o expand.o \
 	bltin/mount.o bltin/umount.o bltin/cat.o bltin/lsmod.o bltin/rmmod.o \
 	bltin/losetup.o bltin/pivot_root.o bltin/sleep.o
 
-MOD_OBJ = ./module-init-tools-3.0-pre3/insmod.o
+MOD_OBJ = ./module-init-tools-3.0/insmod.o
 
 OBJS =	$(OBJ1) $(OBJ2)
 
