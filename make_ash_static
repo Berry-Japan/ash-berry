@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Needs dietlibc for using diet
-GCC="diet gcc -Os"
+GCC="diet gcc -Os -D_FILE_OFFSET_BITS=64"
 MAKE="make"
 
 # Build module-init-tools library
