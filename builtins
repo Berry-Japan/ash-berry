@@ -94,5 +94,6 @@ rmmodcmd	rmmod
 lsmodcmd	lsmod
 losetup_main	losetup
 pivot_root_main	pivot_root
+switch_root_main	switch_root
 rescan_main	rescan
 sleepcmd	sleep

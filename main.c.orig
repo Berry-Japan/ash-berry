@@ -101,13 +101,6 @@ main(argc, argv)  char **argv; {
 	volatile int state;
 	char *shinit;
 
-	if (equal(argv[0], "switch_root")/* || (argv[1] && equal(argv[1], "switch_root"))*/) {
-		//f = find_builtin(argv);
-		//switch_root_main(argc-1, ++argv);
-		switch_root_main(argc, argv);
-		return 0;
-	}
-
 #if PROFILE
 	monitor(4, etext, profile_buf, sizeof profile_buf, 50);
 #endif
@@ -238,6 +231,7 @@ cmdloop(top) {
 }
 
 
+
 /*
  * Read /etc/profile or .profile.  Return on error.
  */
@@ -259,6 +253,7 @@ read_profile(name)
 }
 
 
+
 /*
  * Read a file containing shell functions.
  */
@@ -278,6 +273,7 @@ readcmdfile(name)
 	cmdloop(0);
 	popfile();
 }
+
 
 
 /*
@@ -318,6 +314,7 @@ lccmd(argc, argv)  char **argv; {
 		return exitstatus;
 	}
 }
+
 
 
 #ifdef notdef

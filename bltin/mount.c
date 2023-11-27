@@ -46,7 +46,7 @@ int mountcmd(int argc, char **argv)
 {
  int i,rc;
  unsigned long fl=MS_MGC_VAL;
- char *dv=NULL,*mp=NULL,*fs=NULL;
+ char *dv=NULL,*mp=NULL,*fs="auto";
 
  if(argc<2) /* List mounts, use procfs, simple "cat" */
   {

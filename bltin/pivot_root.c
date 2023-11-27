@@ -1,20 +1,20 @@
 //---------------------------------------------------------
 //	pivot_root - change the root device
 //
-//		(C)2003-2005 NAKADA
+//		(C)2003-2005,2010 NAKADA
 //---------------------------------------------------------
 
 #include <stdio.h>
 #include <errno.h>
 
-#ifdef __ia64__
+extern int pivot_root(const char * new_root,const char * put_old);
+/*#ifdef __ia64__
 	#include <sys/syscall.h>
 	#define pivot_root(new_root,put_old) syscall(SYS_pivot_root,new_root,put_old)
 #else
 	#include <linux/unistd.h>
-
 	static _syscall2(int,pivot_root,const char *,new_root,const char *,put_old)
-#endif
+#endif*/
 
 
 //---------------------------------------------------------
