@@ -1,5 +1,5 @@
 /*
- * mount(1); version 2-like  --  author Klaus Knopper
+ * mount(1); version 2-like
  * needed for static ash on tight linux bootdisk
  */
 #include <sys/mount.h>
@@ -39,6 +39,8 @@ static int syntax(void)
 #ifndef MS_REMOUNT
 #define MS_REMOUNT	32
 #endif
+#define MS_NOATIME	1024	/* Do not update access times. */
+#define MS_NODIRATIME	2048	/* Do not update directory access times */
 
 int mountcmd(int argc, char **argv)
 {
@@ -66,19 +68,21 @@ int mountcmd(int argc, char **argv)
      o=strtok(argv[i],d);
      while(o!=NULL)
       {
-       if(!strcmp(o,"ro"))           fl|=MS_RDONLY;
-       else if(!strcmp(o,"rw"))      fl&=~MS_RDONLY;
-       else if(!strcmp(o,"nosuid"))  fl|=MS_NOSUID;
-       else if(!strcmp(o,"suid"))    fl&=~MS_NOSUID;
-       else if(!strcmp(o,"nodev"))   fl|=MS_NODEV;
-       else if(!strcmp(o,"dev"))     fl&=~MS_NODEV;
-       else if(!strcmp(o,"noexec"))  fl|=MS_NOEXEC;
-       else if(!strcmp(o,"exec"))    fl&=~MS_NOEXEC;
-       else if(!strcmp(o,"sync"))    fl|=MS_SYNCHRONOUS;
-       else if(!strcmp(o,"nosync"))  fl&=~MS_SYNCHRONOUS;
-       else if(!strcmp(o,"remount")) fl|=MS_REMOUNT;
-       else error("Unknown option '%s' ignored.",o);
-       o=strtok(NULL,d);
+	if (!strcmp(o, "ro"))			fl|=MS_RDONLY;
+	else if (!strcmp(o, "rw"))		fl&=~MS_RDONLY;
+	else if (!strcmp(o, "nosuid"))	fl|=MS_NOSUID;
+	else if (!strcmp(o, "suid"))		fl&=~MS_NOSUID;
+	else if (!strcmp(o, "nodev"))	fl|=MS_NODEV;
+	else if (!strcmp(o, "dev"))		fl&=~MS_NODEV;
+	else if (!strcmp(o, "noexec"))	fl|=MS_NOEXEC;
+	else if (!strcmp(o, "exec"))		fl&=~MS_NOEXEC;
+	else if (!strcmp(o, "sync"))		fl|=MS_SYNCHRONOUS;
+	else if (!strcmp(o, "nosync"))	fl&=~MS_SYNCHRONOUS;
+	else if (!strcmp(o, "remount"))	fl|=MS_REMOUNT;
+	else if (!strcmp(o, "noatime"))	fl|=MS_NOATIME;
+	else if (!strcmp(o, "nodiratime"))	fl|=MS_NODIRATIME;
+	else error("Unknown option '%s' ignored.", o);
+	o=strtok(NULL,d);
       }
     }
    else if(!strcmp(argv[i],"-t"))
@@ -95,8 +99,8 @@ int mountcmd(int argc, char **argv)
  rc=mount(dv,mp,fs,fl,NULL);
  if(rc==EACCES) /* Read-only filesystem */
    rc=mount(dv,mp,fs,fl|MS_RDONLY,NULL);
- if(rc!=0) 
-  { 
+ if(rc!=0)
+  {
    perror(argv[0]);
    return -1;
   }
