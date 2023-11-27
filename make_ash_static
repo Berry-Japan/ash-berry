@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# Needs dietlibc for using diet
+GCC="diet gcc"
+#GCC="gcc"
+MAKE="make"
+
+# Build modutils library
+	( cd modutils-2.4.18 ; \
+	CC="${GCC}" ./configure --disable-compat-2-0 \
+	--disable-combined \
+ 	--disable-rmmod \
+	--disable-lsmod \
+	--disable-kerneld \
+	--disable-insmod-static && \
+	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" depend && \
+	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C util all && \
+	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C obj all && \
+	${MAKE} CC="${GCC}" CFLAGS="-D__DIETLIBC__ -DNDEBUG -Derror=merror -Os" -C insmod insmod.o )
+
+# Build static version of ash-berry
+	# We need a VERY small binary, so let's try to use libc5
+	# Packages altgc and lib5-altdev needed
+	${MAKE} mkinit
+	CC="${GCC}" ${MAKE} CC="${GCC}" STATIC="-static" LDFLAGS="-s -Wl,-qmagic"
+	mv sh ash.static
+
+#make CC="gcc -static -Os -fomit-frame-pointer"
+#mv sh ash
